@@ -1,83 +1,90 @@
-import React from "react";
+import './App.css';
+import React, { useState, useEffect } from "react";
 import web3 from "./web3";
 import lottery from "./lottery";
-import './App.css';
 
-class App extends React.Component {
-  state = {
-    manager: "",
-    players: [],
-    balance: "",
-    value: "",
-    message: "",
-  };
-  async componentDidMount() {
-    const manager = await lottery.methods.manager().call();
-    const players = await lottery.methods.getPlayers().call();
-    const balance = await web3.eth.getBalance(lottery.options.address);
+function App() {
+    const [manager, setManager] = useState("");
+    const [players, setPlayers] = useState([]);
+    const [balance, setBalance] = useState("");
+    const [value, setValue] = useState("");
+    const [message, setMessage] = useState("");
 
-    this.setState({ manager, players, balance });
-  }
+    useEffect(() => {
+        async function fetchData() {
+            const manager = await lottery.methods.manager().call();
+            const players = await lottery.methods.getPlayers().call();
+            const balance = await web3.eth.getBalance(lottery.options.address);
 
-  onSubmit = async (event) => {
-    event.preventDefault();
+            setManager(manager);
+            setPlayers(players);
+            setBalance(balance);
+        }
 
-    const accounts = await web3.eth.getAccounts();
+        fetchData();
+    }, []);
 
-    this.setState({ message: "Waiting on transaction success..." });
+    async function handleSubmit(event) {
+        event.preventDefault();
 
-    await lottery.methods.enter().send({
-      from: accounts[0],
-      value: web3.utils.toWei(this.state.value, "ether"),
-      gas: 100000
-    });
+        const accounts = await web3.eth.getAccounts();
 
-    this.setState({ message: "You have been entered!" });
-  };
+        setMessage("Waiting on transaction success...");
 
-  onClick = async () => {
-    const accounts = await web3.eth.getAccounts();
+        await lottery.methods.enter().send({
+            from: accounts[0],
+            value: web3.utils.toWei(value, "ether"),
+            gas: 100000
+        });
 
-    this.setState({ message: "Waiting on transaction success..." });
+        setMessage("You have been entered!");
+    }
 
-    await lottery.methods.pickWinner().send({
-      from: accounts[0],
-      gas: 100000
-    });
+    async function handleClick() {
+        const accounts = await web3.eth.getAccounts();
 
-    this.setState({ message: "A winner has been picked!" });
-  };
+        setMessage("Waiting on transaction success...");
 
-  render() {
+        await lottery.methods.pickWinner().send({
+            from: accounts[0],
+            gas: 100000
+        });
+
+        setMessage("A winner has been picked!");
+    }
+
     return (
-      <div>
-        <h2>Lottery Contract</h2>
-        <p>
-          This contract is managed by {this.state.manager}.
-        </p>
-        <p>
-          There are currently {this.state.players.length} people entered,
-          competing to win {web3.utils.fromWei(this.state.balance, "ether")} ether!
-        </p>
-        <hr />
-        <form onSubmit={this.onSubmit}>
-          <h4>Want to try your luck?</h4>
-          <div>
-            <label>Amount of ether to enter</label>
-            <input
-              value={this.state.value}
-              onChange={(event) => this.setState({ value: event.target.value })}
-            />
-          </div>
-          <button>Enter</button>
-        </form>
-        <hr />
-        <h4>Ready to pick a winner</h4>
-        <button onClick={this.onClick}>Pick a winner!</button>
-        <hr />
-        <h2 className="message">{this.state.message}</h2>
-      </div>
+        <div>
+            <h2>Lottery Contract</h2>
+            <p>
+                This contract is managed by {manager}.
+            </p>
+            <p>
+                There are currently {players.length} people entered, 
+                competing to win {web3.utils.fromWei(balance, "ether")} ether!
+            </p>
+
+            <hr />
+            <form onSubmit={handleSubmit}>
+                <h4>Want to try your luck?</h4>
+                <div>
+                    <label>Amount of ether to enter</label>
+                    <input
+                        value={value}
+                        onChange={(event) => setValue(event.target.value)}
+                    />
+                </div>
+                <button>Enter</button>
+            </form>
+
+            <hr />
+            <h4>Ready to pick a winner?</h4>
+            <button onClick={handleClick}>Pick a winner!</button>
+
+            <hr />
+            <h2 className='message'>{message}</h2>
+        </div>
     );
-  }
 }
+
 export default App;
